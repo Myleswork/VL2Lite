@@ -2,7 +2,7 @@ ______________________________________________________________________
 
 <div align="center">
 
-# Your Project Name
+# VL2Lite: Task-Specific Knowledge Distillation from Large Vision-Language Models to Lightweight Networks
 
 <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
 <a href="https://pytorchlightning.ai/"><img alt="Lightning" src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white"></a>
@@ -14,8 +14,7 @@ ______________________________________________________________________
 </div>
 
 ## Description
-
-What it does
+Knowledge Distillation methods rely on Large Scale Model. 
 
 ## Installation
 
@@ -23,8 +22,8 @@ What it does
 
 ```bash
 # clone project
-git clone https://github.com/YourGithubName/your-repo-name
-cd your-repo-name
+git clone https://gitlab.tde.sktelecom.com/1113596/vl2lite
+cd vl2lite
 
 # [OPTIONAL] create conda environment
 conda create -n myenv python=3.9
@@ -37,18 +36,10 @@ conda activate myenv
 pip install -r requirements.txt
 ```
 
-#### Conda
-
+## Link Data directory to /data
 ```bash
-# clone project
-git clone https://github.com/YourGithubName/your-repo-name
-cd your-repo-name
-
-# create conda environment and install dependencies
-conda env create -f environment.yaml -n myenv
-
-# activate conda environment
-conda activate myenv
+# build softlink to real storage. ex)
+ln -s ./data/kd_datasets /data/KD_datasets
 ```
 
 ## How to run
@@ -74,3 +65,5 @@ You can override any parameter from command line like this
 ```bash
 python src/train.py trainer.max_epochs=20 data.batch_size=64
 ```
+
+!!! check src/train.sh file !!!
