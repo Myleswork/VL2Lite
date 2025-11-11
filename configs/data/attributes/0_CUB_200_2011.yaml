@@ -1,5 +1,5 @@
 name: 0_CUB_200_2011
-sub_dir: /
+sub_dir: /CUB_200_2011
 prompt_tmpl: "a photo of {}, a type of bird"
 class_num: 200
 classes: 

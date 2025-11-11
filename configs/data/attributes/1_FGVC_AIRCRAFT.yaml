@@ -1,5 +1,5 @@
 name: 1_FGVC_AIRCRAFT
-sub_dir: /
+sub_dir: /fgvc-aircraft-2013b/fgvc-aircraft-2013b
 prompt_tmpl: "a photo of {}, one of the airplane models"
 class_num: 100
 classes:

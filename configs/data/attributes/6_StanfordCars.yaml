@@ -1,5 +1,5 @@
 name: 6_StanfordCars
-sub_dir: /cars
+sub_dir: /
 prompt_tmpl: "a photo of {}, which is the model name of car"
 class_num: 196
 classes:

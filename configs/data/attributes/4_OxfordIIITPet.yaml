@@ -1,5 +1,5 @@
 name: 4_OxfordIIITPet
-sub_dir: /oxford-iiit-pet
+sub_dir: /
 prompt_tmpl: "a photo of {}, a type of pet"
 class_num: 37
 classes:
