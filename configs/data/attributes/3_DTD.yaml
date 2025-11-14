@@ -1,5 +1,5 @@
 name: 3_DTD
-sub_dir: /dtd/dtd
+sub_dir: /dtd
 prompt_tmpl: "a photo of {} pattern"
 class_num: 47
 classes:
