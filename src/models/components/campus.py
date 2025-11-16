@@ -14,7 +14,7 @@ class TeacherStudent(nn.Module):
         self.data_attributes = data_attributes
         self.student = StudentNet(student, data_attributes.class_num, use_teacher)
         if use_teacher:
-            device = next(self.student.model.resnet.parameters()).device
+            device = next(self.student.model.resnet_features.parameters()).device
             self.teacher = TeacherNet(teacher)
             self.align = AlignNet(self.teacher.last_features_dim, self.student.num_features)
             self.frozen_nlp_features = self.get_frozen_nlp_features(data_attributes)
@@ -37,9 +37,11 @@ class TeacherStudent(nn.Module):
             #out = (B, K_classes)
             spatial_features, hidden_features, out = self.student(x)
             #投影层
-            aligned_img, aligned_nlp = self.align(clip_img_features, frozen_nlp_features)
-            hidden_features, out = self.student(x)
+            # aligned_img, aligned_nlp = self.align(clip_img_features, frozen_nlp_features)
+            # hidden_features, out = self.student(x)
             #return hidden_features, out, clip_img_features, frozen_nlp_features, aligned_img, aligned_nlp
+            aligned_nlp = self.align(clip_img_features, frozen_nlp_features)
+            aligned_img = None
             return (
                 spatial_features,                      #[0] (B, C_student, H, W)  学生空间特征
                 self.student.model.linear_cls.weight,  #[1](K, C_s)  学生分类器权重
@@ -85,11 +87,11 @@ class AlignNet(nn.Module):
     def __init__(self, in_features, out_features):
         super(AlignNet, self).__init__()
 
-        self.align_img_layer = nn.Sequential(
-            nn.Linear(in_features, out_features), 
-            nn.ReLU(), 
-            nn.Linear(out_features, out_features)
-            )
+        # self.align_img_layer = nn.Sequential(
+        #     nn.Linear(in_features, out_features), 
+        #     nn.ReLU(), 
+        #     nn.Linear(out_features, out_features)
+        #     )
         self.align_nlp_layer = nn.Sequential(
             nn.Linear(in_features, out_features), 
             nn.ReLU(), 
@@ -97,9 +99,10 @@ class AlignNet(nn.Module):
         )
     
     def forward(self, x, clip_nlp_features):
-        align_img = self.align_img_layer(x)
+        # align_img = self.align_img_layer(x)
         align_nlp = self.align_nlp_layer(clip_nlp_features)
-        return feature_norm(align_img), feature_norm(align_nlp)
+        # return feature_norm(align_img), feature_norm(align_nlp)
+        return feature_norm(align_nlp)
 
 
 
@@ -136,12 +139,12 @@ class StudentNet(nn.Module):
 class ModifiedResNet(torch.nn.Module):
     def __init__(self, origin_model, classnum):
         super(ModifiedResNet, self).__init__()
-        self.resnet = origin_model
+        # self.resnet = origin_model
         
         try:
             num_features = origin_model.fc.in_features
             # self.resnet.fc = nn.Identity()
-            self.resnet.features = nn.Sequential(*list(origin_model.children())[:-2])
+            self.resnet_features = nn.Sequential(*list(origin_model.children())[:-2])
             self.resnet_pool = origin_model.avgpool
             self.num_features = num_features
         except Exception as e:

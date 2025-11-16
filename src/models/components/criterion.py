@@ -17,7 +17,7 @@ def generate_cams(features, weights):
     # F.conv2d 将其视为 K 个 (in_channels=C, out_channels=1) 的 1x1 卷积核
     return F.conv2d(features, weights.unsqueeze(-1).unsqueeze(-1))
 
-def cat_loss(cam_s, cam_t, pool_size=2):
+def CAT_loss(cam_s, cam_t, pool_size=2):
     """
     计算 CAT-KD 损失 (池化, L2归一化, MSE)。
     """
@@ -62,7 +62,7 @@ class KDCriterion:
         #计算新的视觉蒸馏损失
         cam_s = generate_cams(spatial_features_s, student_cls_weights)
         cam_t_guided = generate_cams(spatial_features_s, aligned_nlp)
-        cat_loss = cat_loss(cam_s, cam_t_guided, pool_size=self.cat_pool_size)
+        cat_loss = CAT_loss(cam_s, cam_t_guided, pool_size=self.cat_pool_size)
 
         # img_loss = self.criterion_aligned_img_kd(hidden_features, aligned_img) 被cat_loss取代
 

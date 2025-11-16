@@ -36,7 +36,7 @@ kd_criterion:
     _target_: torch.nn.KLDivLoss
   temperature: 2.0
   class_num: ${data.train_dataset.attributes.class_num}
-  cat_pool_size: 2.0
+  cat_pool_size: 2
 
 
 # compile model for faster training with pytorch 2.0
