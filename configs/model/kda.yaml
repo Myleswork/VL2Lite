@@ -30,12 +30,13 @@ net:
 #Must set use_teacher as True to use teacher 
 kd_criterion:
   _target_: src.models.components.criterion.KDCriterion
-  img_criterion: 
-    _target_: torch.nn.L1Loss
+  # img_criterion: 
+  #   _target_: torch.nn.L1Loss
   nlp_criterion: 
     _target_: torch.nn.KLDivLoss
   temperature: 2.0
   class_num: ${data.train_dataset.attributes.class_num}
+  cat_pool_size: 2.0
 
 
 # compile model for faster training with pytorch 2.0

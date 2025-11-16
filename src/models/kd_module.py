@@ -81,7 +81,8 @@ class KDModule(LightningModule):
         if use_teacher:
             self.kd_loss = MeanMetric()
             self.cls_loss = MeanMetric()
-            self.img_loss = MeanMetric()
+            # self.img_loss = MeanMetric()
+            self.cat_loss = MeanMetric()
 
         # for tracking best so far validation accuracy
         self.val_acc_best = MaxMetric()
@@ -126,21 +127,22 @@ class KDModule(LightningModule):
         loss_dict = {}
         if self.use_teacher:
             outputs = self.forward(x)
-            img_loss, kd_loss = self.kd_criterion(outputs)
-            cls_loss = self.criterion(outputs[1], y)
+            # img_loss, kd_loss = self.kd_criterion(outputs)
+            cat_loss, kd_loss = self.kd_criterion(outputs)
+            cls_loss = self.criterion(outputs[3], y)
             
             cls_loss_weight, kd_loss_weight = calculate_loss_weights(self.current_epoch, self.trainer.max_epochs)
             cls_loss = cls_loss_weight*cls_loss
-            img_loss = kd_loss_weight*img_loss
+            cat_loss = kd_loss_weight*cat_loss
             kd_loss = kd_loss_weight*kd_loss
-            loss = cls_loss + (img_loss + kd_loss)/2
-            preds = torch.argmax(outputs[1], dim=1)
+            loss = cls_loss + (cat_loss + kd_loss)/2
+            preds = torch.argmax(outputs[3], dim=1)
             loss_dict["loss"] = loss
             loss_dict["cls_loss"] = cls_loss
-            loss_dict["img_loss"] = img_loss
+            loss_dict["cat_loss"] = cat_loss
             loss_dict["kd_loss"] = kd_loss
         else:
-            logits = self.forward(x)
+            logits = self.forward(x)[-1]
             loss = self.criterion(logits, y)
             preds = torch.argmax(logits, dim=1)
             loss_dict["loss"] = loss
@@ -166,10 +168,10 @@ class KDModule(LightningModule):
 
         if self.use_teacher:
             self.cls_loss(loss_dicts["cls_loss"])
-            self.img_loss(loss_dicts["img_loss"])
+            self.cat_loss(loss_dicts["cat_loss"])
             self.kd_loss(loss_dicts["kd_loss"])
             self.log("train/cls_loss", self.cls_loss, on_step=False, on_epoch=True, prog_bar=True)
-            self.log("train/img_loss", self.img_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("train/cat_loss", self.cat_loss, on_step=False, on_epoch=True, prog_bar=True)
             self.log("train/kd_loss", self.kd_loss, on_step=False, on_epoch=True, prog_bar=True)
         # return loss or backpropagation will fail
         return loss

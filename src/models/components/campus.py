@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torchvision.models as models
+import torch.nn.functional as F
 
 import open_clip
 
@@ -27,13 +28,34 @@ class TeacherStudent(nn.Module):
     
     def forward(self, x):
         if self.teacher:
+            #教师特征不变
             clip_img_features = self.teacher(x)
             frozen_nlp_features = self.frozen_nlp_features.to(clip_img_features.device)
+            #学生特征需要返回值
+            #spatial_features = (B, C_student, H, W)
+            #hidden_features = (B, C_student)
+            #out = (B, K_classes)
+            spatial_features, hidden_features, out = self.student(x)
+            #投影层
             aligned_img, aligned_nlp = self.align(clip_img_features, frozen_nlp_features)
             hidden_features, out = self.student(x)
-            return hidden_features, out, clip_img_features, frozen_nlp_features, aligned_img, aligned_nlp
-        return self.student(x)
-
+            #return hidden_features, out, clip_img_features, frozen_nlp_features, aligned_img, aligned_nlp
+            return (
+                spatial_features,                      #[0] (B, C_student, H, W)  学生空间特征
+                self.student.model.linear_cls.weight,  #[1](K, C_s)  学生分类器权重
+                hidden_features,                       #[2](B, C_student) 学生全局特征
+                out,                                   #[3](B, K_classes) 学生分类输出logits，
+                clip_img_features,                     #[4](B, C_teacher) 教师图像特征
+                frozen_nlp_features,                   #[5](K, C_teacher) 教师文本特征
+                aligned_img,                           #[6](B, C_student) 对齐后的图像特征，原L_vis目标
+                aligned_nlp                            #[7](K, C_student) 对齐后的文本特征，原L_text目标,CATKD教师权重
+            )
+        #非蒸馏模式
+        out_tuple = self.student(x)
+        if self.student.use_teacher:
+            return out_tuple[1], out_tuple[2]
+        else:
+            return out_tuple[-1]
 
 
 class TeacherNet(nn.Module):
@@ -100,11 +122,15 @@ class StudentNet(nn.Module):
                 self.model.classifier[1] = nn.Linear(num_features, class_num)
 
     def forward(self, x):
+        # if self.use_teacher:
+        #     hidden_features, out = self.model(x)
+        #     return feature_norm(hidden_features), out
+        # out = self.model(x)
+        # return out
         if self.use_teacher:
-            hidden_features, out = self.model(x)
-            return feature_norm(hidden_features), out
+            return self.model(x)
         out = self.model(x)
-        return out
+        return (None, None, out)
 
 
 class ModifiedResNet(torch.nn.Module):
@@ -114,18 +140,34 @@ class ModifiedResNet(torch.nn.Module):
         
         try:
             num_features = origin_model.fc.in_features
-            self.resnet.fc = nn.Identity()
-        except:
+            # self.resnet.fc = nn.Identity()
+            self.resnet.features = nn.Sequential(*list(origin_model.children())[:-2])
+            self.resnet_pool = origin_model.avgpool
+            self.num_features = num_features
+        except Exception as e:
+            # num_features = origin_model.classifier[1].in_features
+            # self.resnet.classifier  = nn.Identity()   
+            print(f"Warning: ResNet parsing failed ({e}). Falling back to classifier parsing.")
             num_features = origin_model.classifier[1].in_features
-            self.resnet.classifier  = nn.Identity()           
+            self.resnet_features = origin_model.features
+            self.resnet_pool = nn.AdaptiveAvgPool2d((1, 1)) # 假设
+            self.num_features = num_features        
         self.linear_cls = nn.Linear(num_features, classnum)
-        self.num_features = num_features
+        # self.num_features = num_features
 
     def forward(self, x):
-        hidden_features = self.resnet(x)
+        # hidden_features = self.resnet(x)
+        # out = self.linear_cls(hidden_features)
+        #得到空间特征图(B, C, H, W)
+        spatial_features = self.resnet_features(x)
+        #得到全局特征(B, C)
+        hidden_features = self.resnet_pool(spatial_features)
+        hidden_features = torch.flatten(hidden_features, 1)
+        #得到logits(B, K)
         out = self.linear_cls(hidden_features)
 
-        return hidden_features, out
+
+        return spatial_features, hidden_features, out
 
 
 
